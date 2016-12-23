@@ -1,0 +1,25 @@
+{
+    'parser': 'babel-eslint',
+    'rules': {
+        'linebreak-style': [2, 'unix'],
+        'semi': [2, 'always'],
+        'no-console': 0,
+        'no-mixed-spaces-and-tabs': 2,
+        'indent': [2, 4],
+        'quotes': [2, 'single'],
+        'quote-props': [2, 'consistent-as-needed'],
+        'no-underscore-dangle': 0,
+        'arrow-body-style': 0,
+    },
+    'env': {
+        'es6': false,
+        'browser': true
+    },
+    'presets': [
+        'es2015'
+    ],
+    'plugins': [
+    ],
+    'whitelist': [
+    ]
+}
