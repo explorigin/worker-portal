@@ -84,7 +84,7 @@ export function WorkerPortal(context, worker, serialize) {
         }
     }
 
-    function injectionPointFactory(fnId, fnName, callbackFactory) {
+    function injectionPointFactory(fnId, callbackFactory) {
         return () => (
             new Promise((resolve, reject) => {
                 const id = callCount;
@@ -105,7 +105,7 @@ export function WorkerPortal(context, worker, serialize) {
         return (linkedFunctionNames) => {
             const externalInterface = {};
             linkedFunctionNames.forEach((fnName, index) => {
-                externalInterface[fnName] = injectionPointFactory(index, fnName);
+                externalInterface[fnName] = injectionPointFactory(index);
             });
             resolve(externalInterface);
             return contextIndex;
@@ -120,6 +120,6 @@ export function WorkerPortal(context, worker, serialize) {
             contextIndex.splice(0, 0, '__init');
             context.__init = resolveExternalInterfaceFactory(resolve);
         })
-        : injectionPointFactory(0, '___init___', resolveExternalInterfaceFactory)(contextIndex)
+        : injectionPointFactory(0, resolveExternalInterfaceFactory)(contextIndex)
     );
 }
