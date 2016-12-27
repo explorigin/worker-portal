@@ -44,7 +44,7 @@ export function WorkerPortal(context, worker, serialize) {
         _worker.postMessage(_serialize(type, destination, id, params));
     }
 
-    _worker.onmessage = function dispatcher(evt) {
+    function dispatcher(evt) {
         let data;
         try {
             data = JSON.parse(evt.data);
@@ -82,7 +82,8 @@ export function WorkerPortal(context, worker, serialize) {
         } else {
             _resolve(thennable);
         }
-    };
+    }
+
     function injectionPointFactory(fnId, fnName, callbackFactory) {
         return () => (
             new Promise((resolve, reject) => {
@@ -110,6 +111,8 @@ export function WorkerPortal(context, worker, serialize) {
             return contextIndex;
         };
     }
+
+    _worker.addEventListener('message', dispatcher);
 
     return (
         isWorker()
