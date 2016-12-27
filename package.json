@@ -2,16 +2,18 @@
   "name": "worker-portal",
   "version": "0.6.0",
   "description": "Expose an API to a Web Worker",
-  "main": "src/index.js",
+  "main": "lib/index.js",
   "jsnext:main": "src/index.js",
   "files": [
     "dist",
+    "lib",
     "src"
   ],
   "scripts": {
     "lint": "eslint src",
-    "clean": "rimraf dist",
-    "build:umd": "NODE_ENV=production rollup -c",
+    "clean": "rimraf dist lib",
+    "build:lib": "NODE_ENV=production babel src --presets=\"stage-0,es2015\" --out-dir lib",
+    "build:umd": "npm run build:lib && NODE_ENV=production rollup -c",
     "build:umd:min": "npm run build:umd && uglifyjs -m --screw-ie8 -c -o dist/worker-portal.min.js dist/worker-portal.js",
     "build:umd:gzip": "npm run build:umd:min && gzip -c9 dist/worker-portal.min.js > dist/worker-portal.min.js.gz",
     "build": "npm run build:umd:gzip && ls -l dist/",
@@ -28,20 +30,23 @@
     "promise"
   ],
   "author": "Timothy Farrell <tim@thecookiejar.me> (https://github.com/explorigin)",
-  "license": "Apache 2.0",
+  "license": "Apache-2.0",
   "bugs": {
     "url": "https://gitlab.com/explorigin/worker-portal/issues"
   },
   "homepage": "https://gitlab.com/explorigin/worker-portal",
   "devDependencies": {
-    "babel-eslint": "^7.1.1",
-    "babel-preset-es2015-rollup": "^3.0.0",
-    "eslint": "3.2.0",
-    "eslint-plugin-flow-vars": "0.5.0",
-    "eslint-plugin-flowtype": "2.4.0",
-    "rimraf": "2.5.2",
+    "babel-cli": "6.18.0",
+    "babel-core": "6.21.0",
+    "babel-eslint": "7.1.1",
+    "babel-preset-es2015": "6.18.0",
+    "babel-preset-es2015-rollup": "3.0.0",
+    "babel-preset-stage-0": "6.16.0",
+    "eslint": "3.12.2",
+    "eslint-plugin-flowtype": "2.29.1",
+    "rimraf": "2.5.4",
     "rollup-plugin-babel": "^2.7.1",
-    "rollup-plugin-json": "2.0.1",
+    "rollup-plugin-json": "2.1.0",
     "uglifyjs": "2.4.10"
   }
 }
