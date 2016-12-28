@@ -1,6 +1,6 @@
 {
   "name": "worker-portal",
-  "version": "0.6.1",
+  "version": "0.6.2",
   "description": "Expose an API to a Web Worker",
   "main": "lib/index.js",
   "jsnext:main": "src/index.js",
