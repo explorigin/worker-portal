@@ -12,13 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-export function isWorker() {
-    try {
-        return self !== window;
-    } catch (e) {
-        return true;
-    }
-}
 
 function tryJSON(type, destination, id, data) {
     const packet = [type, destination, id, data];
@@ -29,7 +22,7 @@ function tryJSON(type, destination, id, data) {
     }
 }
 
-export function WorkerPortal(context, worker, serialize) {
+export function WorkerPortal(context, worker, isSlave, serialize) {
     const responseMap = new Map();
     const _worker = worker || self;
     const contextIndex = Object.keys(context);
@@ -86,9 +79,9 @@ export function WorkerPortal(context, worker, serialize) {
     }
 
     function injectionPointFactory(fnId, callbackFactory) {
-        return () => (
-            new Promise((resolve, reject) => {
-                if (!enabled) {
+        return function(...args) {
+            return new Promise((resolve, reject) => {
+                if (!enabled && fnId !== 0) {
                     reject(new Error('Portal disabled'));
                 }
                 const id = callCount;
@@ -100,23 +93,17 @@ export function WorkerPortal(context, worker, serialize) {
                         reject
                     ]
                 );
-                post(0, id, fnId, Array.from(arguments));
-            })
-        );
+                post(0, id, fnId, args);
+            });
+        };
     }
 
     function resolveExternalInterfaceFactory(resolve) {
-        return (linkedFunctionNames) => {
+        return (linkedFunctionNames, ...rest) => {
             const externalInterface = {};
             linkedFunctionNames.forEach((fnName, index) => {
                 externalInterface[fnName] = injectionPointFactory(index);
             });
-            if (!isWorker()) {
-                externalInterface._cleanup = injectionPointFactory(
-                    linkedFunctionNames.length,
-                    resolve => ( resolve(cleanup()) )
-                );
-            }
             enabled = true;
             resolve(externalInterface);
             return contextIndex;
@@ -135,13 +122,17 @@ export function WorkerPortal(context, worker, serialize) {
 
     _worker.addEventListener('message', dispatcher);
 
-    if (isWorker()) {
+    if (isSlave) {
         return new Promise(resolve => {
-            contextIndex.splice(0, 0, '__init', '__cleanup');
+            contextIndex.splice(0, 0, '__init', '__cleanupSlave');
             context.__init = resolveExternalInterfaceFactory(resolve);
-            context.__cleanup = cleanup;
+            context.__cleanupSlave = cleanup;
         });
     }
 
-    return injectionPointFactory(0, resolveExternalInterfaceFactory)(contextIndex);
+    return injectionPointFactory(0, resolveExternalInterfaceFactory)(contextIndex)
+        .then(api => ({
+            ...api,
+            _cleanup: injectionPointFactory(1, resolve => resolve(cleanup())),
+        }));
 }

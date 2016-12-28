@@ -17,7 +17,8 @@
     "build:umd:min": "npm run build:umd && uglifyjs -m --screw-ie8 -c -o dist/worker-portal.min.js dist/worker-portal.js",
     "build:umd:gzip": "npm run build:umd:min && gzip -c9 dist/worker-portal.min.js > dist/worker-portal.min.js.gz",
     "build": "npm run build:umd:gzip && ls -l dist/",
-    "prepublish": "npm run clean && npm run build"
+    "prepublish": "npm run clean && npm run build",
+    "test": "npm run build:lib && ava --verbose"
   },
   "repository": {
     "type": "git",
@@ -36,6 +37,7 @@
   },
   "homepage": "https://gitlab.com/explorigin/worker-portal",
   "devDependencies": {
+    "ava": "^0.17.0",
     "babel-cli": "6.18.0",
     "babel-core": "6.21.0",
     "babel-eslint": "7.1.1",
