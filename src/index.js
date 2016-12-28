@@ -45,7 +45,9 @@ export function WorkerPortal(context, worker, isSlave, serialize) {
         } catch (e) {
             data = evt.data;
         }
-        const [type, destination, id, params] = data;
+        const destination = data[1];
+        const id = data[2];
+        const params = data[3];
 
         function _resolve(value) {
             post(1, id, 0, value);
@@ -55,7 +57,7 @@ export function WorkerPortal(context, worker, isSlave, serialize) {
         }
 
         // If we have received an RPC response, satisfy the promise.
-        if (type) {
+        if (data[0]) {
             if (responseMap.has(id)) {
                 const responses = responseMap.get(id);
                 responseMap.delete(id);
@@ -131,8 +133,7 @@ export function WorkerPortal(context, worker, isSlave, serialize) {
     }
 
     return injectionPointFactory(0, resolveExternalInterfaceFactory)(contextIndex)
-        .then(api => ({
-            ...api,
+        .then(api => Object.assign(api, {
             _cleanup: injectionPointFactory(1, resolve => resolve(cleanup())),
         }));
 }
