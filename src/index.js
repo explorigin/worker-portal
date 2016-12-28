@@ -39,6 +39,7 @@ export function WorkerPortal(context, worker, serialize) {
         : tryJSON
     );
     let callCount = 0;
+    let enabled = false;
 
     function post(type, id, destination, params) {
         _worker.postMessage(_serialize(type, destination, id, params));
@@ -87,6 +88,9 @@ export function WorkerPortal(context, worker, serialize) {
     function injectionPointFactory(fnId, callbackFactory) {
         return () => (
             new Promise((resolve, reject) => {
+                if (!enabled) {
+                    reject(new Error('Portal disabled'));
+                }
                 const id = callCount;
                 callCount += 1;
                 responseMap.set(
@@ -107,19 +111,37 @@ export function WorkerPortal(context, worker, serialize) {
             linkedFunctionNames.forEach((fnName, index) => {
                 externalInterface[fnName] = injectionPointFactory(index);
             });
+            if (!isWorker()) {
+                externalInterface._cleanup = injectionPointFactory(
+                    linkedFunctionNames.length,
+                    resolve => ( resolve(cleanup()) )
+                );
+            }
+            enabled = true;
             resolve(externalInterface);
             return contextIndex;
         };
     }
 
+    function cleanup() {
+        enabled = false;
+        _worker.removeEventListener('message', dispatcher);
+        for (let key of responseMap.keys()) {
+            try {
+                responseMap.get(key)[1](new Error('Portal cleanup called.'));
+            } catch (e) {}
+        }
+    }
+
     _worker.addEventListener('message', dispatcher);
 
-    return (
-        isWorker()
-        ? new Promise(resolve => {
-            contextIndex.splice(0, 0, '__init');
+    if (isWorker()) {
+        return new Promise(resolve => {
+            contextIndex.splice(0, 0, '__init', '__cleanup');
             context.__init = resolveExternalInterfaceFactory(resolve);
-        })
-        : injectionPointFactory(0, resolveExternalInterfaceFactory)(contextIndex)
-    );
+            context.__cleanup = cleanup;
+        });
+    }
+
+    return injectionPointFactory(0, resolveExternalInterfaceFactory)(contextIndex);
 }
