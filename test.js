@@ -39,7 +39,13 @@ test('Workers can call and respond equally', async t => {
 
     const slave = WorkerPortal(
         {
-            slaveAdd: (a, b) => (a + b)
+            slaveAdd: (a, b) => (a + b),
+            math: {
+                multiply: (a, b) => (a * b),
+                lib: {
+                    pow: (a, b) => Math.pow(a, b),
+                }
+            }
         },
         a,
         true
@@ -55,11 +61,14 @@ test('Workers can call and respond equally', async t => {
     const masterApi = await master;
     const slaveApi = await slave;
 
-    t.deepEqual(Object.keys(masterApi), ['__init', '__cleanupSlave', 'slaveAdd', '_cleanup']);
+    t.deepEqual(Object.keys(masterApi), ['__init', '__cleanupSlave', 'slaveAdd', 'math', '_cleanup']);
+    t.deepEqual(Object.keys(masterApi.math), ['multiply', 'lib']);
     t.deepEqual(Object.keys(slaveApi), ['masterSubtract']);
 
     t.is(await slaveApi.masterSubtract(9, 2), 7);
     t.is(await masterApi.slaveAdd(9, 2), 11);
+    t.is(await masterApi.math.multiply(9, 2), 18);
+    t.is(await masterApi.math.lib.pow(9, 2), 81);
 
     t.is(await masterApi.slaveAdd(5, 2), 7);
     t.is(await slaveApi.masterSubtract(2, 2), 0);

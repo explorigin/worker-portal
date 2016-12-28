@@ -22,10 +22,37 @@ function tryJSON(type, destination, id, data) {
     }
 }
 
+function getPaths(obj, prefix = '') {
+    return Object.keys(obj).map(key => {
+        const prop = obj[key];
+        const path = `${prefix}${key}`;
+        if (typeof prop === 'function') {
+            return path;
+        }
+        return getPaths(prop, path + '.');
+    }).reduce((a, b) => a.concat(b), []);
+}
+
+function traverseObj(obj, pathStr, assignValue) {
+    const path = pathStr.split('.');
+    const last = path.pop();
+    const ptr = path.reduce(
+        (acc, next) => (
+            acc[next] === undefined ? (acc[next] = {}) : acc[next]
+        ),
+        obj
+    );
+    if (assignValue) {
+        return ptr[last] = assignValue;
+    }
+    return ptr[last];
+}
+
 export function WorkerPortal(context, worker, isSlave, serialize) {
     const responseMap = new Map();
     const _worker = worker || self;
-    const contextIndex = Object.keys(context);
+    const contextIndex = getPaths(context);
+    const methods = contextIndex.map(path => traverseObj(context, path));
     const _serialize = (
         serialize
         ? (type, destination, id, params) => serialize(type, destination, id, params, tryJSON)
@@ -69,7 +96,7 @@ export function WorkerPortal(context, worker, isSlave, serialize) {
         // If we have received an RPC call, execute and respond.
         let thennable;
         try {
-            thennable = context[contextIndex[destination]].apply(null, params);
+            thennable = methods[destination].apply(null, params);
         } catch (e) {
             _reject(e);
         }
@@ -103,8 +130,8 @@ export function WorkerPortal(context, worker, isSlave, serialize) {
     function resolveExternalInterfaceFactory(resolve) {
         return (linkedFunctionNames, ...rest) => {
             const externalInterface = {};
-            linkedFunctionNames.forEach((fnName, index) => {
-                externalInterface[fnName] = injectionPointFactory(index);
+            linkedFunctionNames.forEach((pathStr, index) => {
+                traverseObj(externalInterface, pathStr, injectionPointFactory(index));
             });
             enabled = true;
             resolve(externalInterface);
@@ -127,8 +154,7 @@ export function WorkerPortal(context, worker, isSlave, serialize) {
     if (isSlave) {
         return new Promise(resolve => {
             contextIndex.splice(0, 0, '__init', '__cleanupSlave');
-            context.__init = resolveExternalInterfaceFactory(resolve);
-            context.__cleanupSlave = cleanup;
+            methods.splice(0, 0, resolveExternalInterfaceFactory(resolve), cleanup);
         });
     }
 
